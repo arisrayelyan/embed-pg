@@ -1,0 +1,40 @@
+# Use postgres/example user/password credentials
+version: '3.1'
+services:
+  pgVectorDb:
+    env_file:
+      - .env
+    image: arisrayelyan/pgvector:latest
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432" # exosed for local use
+    volumes:
+      - embedPgData:/var/lib/postgresql/data
+  api:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    environment:
+      PORT: ${PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: pgVectorDb
+      DB_PORT: 5432
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPEN_AI_MODEL: ${OPEN_AI_MODEL}
+      OPEN_AI_API_ENDPOINT: ${OPEN_AI_API_ENDPOINT}
+    ports:
+      - "${PORT}:${PORT}"
+    volumes:
+      - .:/app
+    depends_on:
+      - pgVectorDb
+volumes:
+  embedPgData:

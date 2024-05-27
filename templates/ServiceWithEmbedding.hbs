@@ -1,0 +1,238 @@
+import { EntityManager, EntityRepository, raw } from "@mikro-orm/postgresql";
+import { {{capitalize name}} } from "@database/entities";
+import { BaseQuery } from "@common/schemas/common.schema";
+import {
+  Create{{capitalize name}}Input,
+  Create{{capitalize name}}Output,
+  Delete{{capitalize name}}Input,
+  Delete{{capitalize name}}Output,
+  Search{{capitalize name}}Input,
+  Search{{capitalize name}}Output,
+  Update{{capitalize name}}Input,
+  Update{{capitalize name}}Output,
+} from "@common/schemas/{{lowerCase name}}.schema";
+import logger from "@utils/logger";
+import BaseService from "./BaseService";
+
+export class {{capitalize name}}Service extends BaseService {
+  private em: EntityManager;
+  private repository: EntityRepository<{{capitalize name}}>;
+  private serviceLogger = logger.child({ service: "{{capitalize name}}Service" });
+
+  constructor({ em }: { em: EntityManager }) {
+    super();
+    this.em = em;
+    this.repository = this.em.getRepository({{capitalize name}});
+  }
+  /**
+   * Add new {{lowerCase name}} data
+   * @param params Create{{capitalize name}}Input
+   * @param query BaseQuery
+   * @returns Create{{capitalize name}}Output
+   */
+  async add(
+    params: Create{{capitalize name}}Input,
+    query: BaseQuery
+  ): Promise<Create{{capitalize name}}Output> {
+    const { ids, embeddings, metadatas, documents } = params;
+    const { returnEmbeddings } = query;
+    const isEmbeddingRequested: boolean = returnEmbeddings === "yes";
+    const apiErrors: Record<string, string> = {};
+
+    // check if ids and embeddings length are equal
+    if (ids.length !== embeddings.length) {
+      throw new Error("Ids and embeddings length should be equal");
+    }
+
+    ids.forEach((id, index) => {
+      const embedding = embeddings[index];
+      const metadata = metadatas?.[index] || null;
+      const document = documents?.[index] || null;
+      this.repository.create({
+        documentId: id,
+        embedding,
+        metadata,
+        document,
+      });
+    });
+
+    try {
+      await this.em.flush();
+      const result = await this.repository.find(
+        {
+          documentId: { $in: ids },
+        },
+        {
+          ...(!isEmbeddingRequested
+            ? {
+                fields: [
+                  "key",
+                  "documentId",
+                  "document",
+                  "metadata",
+                  "createdAt",
+                  "updatedAt",
+                ],
+              }
+            : {}),
+        }
+      );
+      return (
+        result
+          .map((item) => ({
+            success: !apiErrors?.[item.documentId],
+            error: apiErrors?.[item.documentId] || undefined,
+            data: {
+              key: item.key,
+              documentId: item.documentId,
+              document: item.document || undefined,
+              metadata: item.metadata,
+              ...(isEmbeddingRequested && "embedding" in item
+                ? { embedding: item.embedding as number[] }
+                : {}),
+              createdAt: item.createdAt,
+              updatedAt: item.updatedAt,
+            },
+          }))
+          // order by given ids
+          .sort((a, b) => {
+            return (
+              ids.indexOf(a.data.documentId) - ids.indexOf(b.data.documentId)
+            );
+          })
+      );
+    } catch (error) {
+      this.serviceLogger.error({
+        message: "Failed to save data",
+        error,
+      });
+      throw new Error("Failed to save data");
+    }
+  }
+
+  /**
+   * Update {{lowerCase name}} data
+   * @param data Update{{capitalize name}}Input
+   * @returns Update{{capitalize name}}Output
+   */
+  async update(data: Update{{capitalize name}}Input): Promise<Update{{capitalize name}}Output> {
+    const { key, document, metadata, documentId, embedding } = data;
+    const doc = await this.get(key);
+    if (embedding) {
+      doc.embedding = embedding;
+    }
+    if (document || document === null) {
+      doc.document = document;
+    }
+    if (metadata || metadata === null) {
+      doc.metadata = metadata;
+    }
+
+    if (documentId && documentId !== doc.documentId) {
+      doc.documentId = documentId;
+    }
+    doc.updatedAt = new Date();
+    try {
+      await this.em.flush();
+      return doc;
+    } catch (error) {
+      this.serviceLogger.error({
+        message: "Failed to update data",
+        error,
+      });
+      throw new Error("Failed to update data");
+    }
+  }
+
+  /**
+   * Delete {{lowerCase name}} data
+   * @param data Delete{{capitalize name}}Input
+   * @returns Delete{{capitalize name}}Output
+   */
+  async delete(data: Delete{{capitalize name}}Input): Promise<Delete{{capitalize name}}Output> {
+    const { key, metadata } = data;
+    const doc = await this.repository.findOneOrFail({
+      key,
+      ...(metadata ? { metadata } : {}),
+    });
+    try {
+      this.em.remove(doc);
+      await this.em.flush();
+      return {
+        key,
+      };
+    } catch (error) {
+      this.serviceLogger.error({
+        message: "Failed to delete data",
+        error,
+      });
+      throw new Error("Failed to delete data");
+    }
+  }
+
+  /**
+   * Search {{lowerCase name}} data with cosine similarity
+   * @param data Search{{capitalize name}}Input
+   * @returns  Search{{capitalize name}}Output
+   */
+  async search(data: Search{{capitalize name}}Input): Promise<Search{{capitalize name}}Output> {
+    const { embedding, nResults, metadata } = data;
+
+    const embeddingForQuery = JSON.stringify(embedding);
+    const qb = this.repository.createQueryBuilder("q");
+    qb.select("*");
+    {{#switch distanceFunction}}
+    {{#case "l2"}}
+    qb.addSelect(
+      raw(`("q"."embedding" <-> :embedding) as score`, {
+        embedding: embeddingForQuery,
+      })
+    );
+    {{/case}}
+    {{#case "inner_product"}}
+    qb.addSelect(
+      raw(`("q"."embedding" <#> :embedding) * -1 as score`, {
+        embedding: embeddingForQuery,
+      })
+    );
+    {{/case}}
+    {{#case "cosine"}}
+    qb.addSelect(
+      raw(`1 - ("q"."embedding" <=> :embedding) as score`, {
+        embedding: embeddingForQuery,
+      })
+    );
+    {{/case}}
+    {{/switch}}
+
+    if (metadata) {
+      qb.where({ metadata });
+    }
+
+    qb.orderBy({
+      [raw(`embedding <-> :embedding`, { embedding: embeddingForQuery })]: "",
+    });
+    qb.limit(nResults);
+    const result = await qb.execute<
+      ({{capitalize name}} & {
+        score: number;
+      })[]
+    >();
+    return result.map((item) => {
+      const { embedding: _embedding, score, ...rest } = item;
+      return {
+        ...rest,
+        score,
+      };
+    });
+  }
+
+  /**
+   * Get {{lowerCase name}} data
+   * @param key string
+   * @returns {{capitalize name}}
+   */
+  async get(key: string) {
+    return this.repository.findOneOrFail({ key });
+  }
+}

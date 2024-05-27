@@ -1,0 +1,20 @@
+# compiled output
+.vscode
+/node_modules
+dist
+coverage
+build
+.next
+
+
+# docker
+Dockerfile
+Dockerfile.local
+docker-compose.yml
+
+# environment
+.env
+.env.local
+.env.development
+.env.test
+.env.production

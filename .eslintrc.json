@@ -1,0 +1,71 @@
+{
+  "extends": [
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "plugins": [
+    "@typescript-eslint",
+    "prettier",
+    "import"
+  ],
+  "ignorePatterns": ["dist/*", "build/*"],
+  "rules": {
+    "no-unused-vars": "off",
+    "no-console": 2,
+    "@typescript-eslint/no-unused-vars": ["error", { "varsIgnorePattern": "^_" } ],
+    "@typescript-eslint/no-inferrable-types": "off",
+    "max-len": [
+      "error",
+      {
+        "code": 150,
+        "ignoreComments": true,
+        "ignoreUrls": true,
+        "ignoreStrings": true,
+        "ignoreTemplateLiterals": true,
+        "ignoreRegExpLiterals": true
+      }
+    ],
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        "devDependencies": true
+      }
+    ],
+    "import/prefer-default-export": "off",
+    "no-param-reassign": "off",
+    "template-curly-spacing": "off",
+    "indent": "off",
+    "jsx-a11y/click-events-have-key-events": "off",
+    "jsx-a11y/no-static-element-interactions": "off",
+    "jsx-a11y/no-autofocus": "off",
+    "brace-style": "off",
+    "semi": "off",
+    "@typescript-eslint/semi": [
+      "error"
+    ],
+    "prettier/prettier": [
+      "error",
+      {
+        "arrowParens": "always",
+        "bracketSpacing": true,
+        "endOfLine": "lf",
+        "htmlWhitespaceSensitivity": "css",
+        "insertPragma": false,
+        "singleAttributePerLine": false,
+        "bracketSameLine": false,
+        "jsxBracketSameLine": false,
+        "jsxSingleQuote": false,
+        "printWidth": 80,
+        "proseWrap": "preserve",
+        "quoteProps": "as-needed",
+        "requirePragma": false,
+        "semi": true,
+        "singleQuote": false,
+        "tabWidth": 2,
+        "trailingComma": "es5",
+        "useTabs": false,
+        "vueIndentScriptAndStyle": false
+      }
+    ]
+  }
+}

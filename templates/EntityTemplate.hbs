@@ -1,0 +1,45 @@
+import { Entity, Index, OptionalProps, Property } from "@mikro-orm/core";
+import { BaseEntity, BaseEntityOptionalProps } from "./BaseEntity";
+import { VectorType } from "@database/VectorType";
+import { MetaData } from "@common/schemas/metadata.schema";
+
+@Entity()
+export class {{capitalize name}} extends BaseEntity {
+  [OptionalProps]?: BaseEntityOptionalProps;
+
+  @Property({ type: VectorType, length: {{vectorLength}} })
+  {{#switch distanceFunction}}
+  {{#case "l2"}}
+  @Index({ name: "{{lowerCase name}}_embedding_idx", expression: 'CREATE INDEX ON "{{lowerCase name}}" USING hnsw (embedding vector_l2_ops);' })
+  {{/case}}
+  {{#case "inner_product"}}
+  @Index({ name: "{{lowerCase name}}_embedding_idx", expression: 'CREATE INDEX ON "{{lowerCase name}}" USING hnsw (embedding vector_ip_ops);' })
+  {{/case}}
+  {{#case "cosine"}}
+  @Index({
+    name: "{{lowerCase name}}_embedding_idx",
+    expression:
+      'CREATE INDEX ON "{{lowerCase name}}" USING hnsw (embedding vector_cosine_ops)',
+  })
+  {{/case}}
+  {{/switch}}
+  embedding: number[];
+
+  @Property({ nullable: false })
+  @Index()
+  documentId: string;
+
+  {{#if embeddingProvided}}
+  @Property({ nullable: true, type: "text" })
+  document?: string | null;
+  {{else}}
+  @Property({ nullable: false, type: "text" })
+  document: string;
+  {{/if}}
+
+  @Property({ nullable: true, type: "jsonb" })
+  {{#if metadataIndexes}}
+  @Index({ properties: [{{{parseMetadata metadataIndexes}}}]})
+  {{/if}}
+  metadata?: MetaData | null;
+}

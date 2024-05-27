@@ -1,0 +1,79 @@
+/**
+ * This file defines the schema for the "{{capitalize name}}" collection, used for validation and type enforcement.
+ * Feel free to adjust it according to your needs.
+ */
+import { z } from "zod";
+import { metaDataSchema } from "./metadata.schema";
+import { baseAddApiOutputSchema } from "./common.schema";
+
+export const create{{capitalize name}}Input = z.object({
+  ids: z.array(z.string()),
+  {{#if embeddingProvided}}
+  embeddings: z.array(z.number()).max({{vectorLength}}),
+  documents: z.array(z.string()).optional(),
+  {{else}}
+  documents: z.array(z.string()),
+  {{/if}}
+  metadatas: z.array(metaDataSchema).optional(),
+});
+
+export const update{{capitalize name}}Input = z.object({
+  key: z.string().uuid(),
+  {{#if embeddingProvided}}
+  embedding: z.array(z.number()).max({{vectorLength}}).optional(),
+  document: z.string().optional(),
+  {{else}}
+  document: z.string().optional(),
+  {{/if}}
+  documentId: z.string().optional(),
+  metadata: metaDataSchema.optional().nullish(),
+});
+
+export const delete{{capitalize name}}Input = z.object({
+  key: z.string().uuid(),
+  metadata: metaDataSchema.optional(),
+});
+
+export const search{{capitalize name}}Input = z.object({
+  {{#if embeddingProvided}}
+  embedding: z.array(z.number()).max({{vectorLength}}),
+  {{else}}
+  queryText: z.string(),
+  {{/if}}
+  nResults: z.number().default(5),
+  metadata: metaDataSchema.optional(),
+});
+
+export const output = z.object({
+  key: z.string().uuid(),
+  documentId: z.string(),
+  document: z.string().optional().nullish(),
+  embedding: z.array(z.number()).max({{vectorLength}}).optional(),
+  metadata: metaDataSchema.nullable().optional().nullish(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+  score: z.number().optional(),
+});
+
+export const search{{capitalize name}}Output = z.array(output).default([]);
+export const create{{capitalize name}}Output = z
+  .array(
+    baseAddApiOutputSchema.extend({
+      data: output,
+    })
+  )
+  .default([]);
+export const update{{capitalize name}}Output = output;
+export const delete{{capitalize name}}Output = output.pick({ key: true });
+
+export type Search{{capitalize name}}Input = z.infer<typeof search{{capitalize name}}Input>;
+export type Search{{capitalize name}}Output = z.infer<typeof search{{capitalize name}}Output>;
+
+export type Create{{capitalize name}}Input = z.infer<typeof create{{capitalize name}}Input>;
+export type Create{{capitalize name}}Output = z.infer<typeof create{{capitalize name}}Output>;
+
+export type Update{{capitalize name}}Input = z.infer<typeof update{{capitalize name}}Input>;
+export type Update{{capitalize name}}Output = z.infer<typeof update{{capitalize name}}Output>;
+
+export type Delete{{capitalize name}}Input = z.infer<typeof delete{{capitalize name}}Input>;
+export type Delete{{capitalize name}}Output = z.infer<typeof delete{{capitalize name}}Output>;

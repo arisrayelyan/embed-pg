@@ -1,0 +1,47 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "target": "ES2022",
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "declaration": true,
+    "pretty": true,
+    "sourceMap": true,
+    "strict": true,
+    "outDir": "./dist",
+    "allowJs": true,
+    "noEmit": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "importHelpers": true,
+    "baseUrl": "src",
+    "jsx": "preserve",
+    "strictPropertyInitialization": false,
+    "skipLibCheck": true,
+    "paths": {
+      "@settings/*": [
+        "settings/*"
+      ],
+      "@utils/*": [
+        "utils/*"
+      ],
+      "@services/*": [
+        "services/*"
+      ],
+      "@database/*": [
+        "database/*"
+      ],
+      "@common/*": [
+        "common/*"
+      ]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.json"],
+  "exclude": ["node_modules", "dist"]
+}
